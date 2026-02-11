@@ -27,6 +27,7 @@ public class MessagePOJOConsumer implements Runnable {
     private final ObjectMapper mapper = new ObjectMapper().registerModule(new JavaTimeModule());
     private final Connection connection;
     private final String queue;
+    private static final Object csvLock = new Object();
 
     public MessagePOJOConsumer(Connection connection, String queue) {
         this.connection = connection;
@@ -47,7 +48,10 @@ public class MessagePOJOConsumer implements Runnable {
                 if (!text.equals("STOP")) {
                     MessagePOJO messagePOJO = mapper.readValue(text, MessagePOJO.class);
                     Set<ConstraintViolation<MessagePOJO>> violations = validator.validate(messagePOJO);
-                    writeMessageToCSV(messagePOJO, violations);
+
+                    synchronized (csvLock) {
+                        writeMessageToCSV(messagePOJO, violations);
+                    }
                 } else {
                     reading = false;
                 }

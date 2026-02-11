@@ -7,7 +7,9 @@ import jakarta.jms.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.sql.SQLOutput;
 import java.time.Instant;
+import java.util.List;
 import java.util.stream.Stream;
 
 public class MessagePOJOProducer implements Runnable {
@@ -39,14 +41,25 @@ public class MessagePOJOProducer implements Runnable {
 
             Stream.generate(MessageGenerator::generateMessage)
                     .limit(count)
-//                    .takeWhile(obj -> Instant.now().isBefore(stopTime))
-                    .forEach(obj -> {
+                    .takeWhile(msg -> Instant.now().isBefore(stopTime))
+                    .forEach(msg -> {
+                        String json;
                         try {
-                            String json = mapper.writeValueAsString(obj);
-                            TextMessage textMessage = session.createTextMessage(json);
+                            json = mapper.writeValueAsString(msg);
+                        } catch (JsonProcessingException e) {
+                            throw new RuntimeException(e);
+                        }
+                        System.out.println(json);
+                        TextMessage textMessage;
+                        try {
+                            textMessage = session.createTextMessage(json);
+                        } catch (JMSException e) {
+                            throw new RuntimeException(e);
+                        }
+                        try {
                             producer.send(textMessage);
-                        } catch (JsonProcessingException | JMSException e) {
-                            logger.error("Failed to send message.", e);
+                        } catch (JMSException e) {
+                            throw new RuntimeException(e);
                         }
                     });
             producer.send(session.createTextMessage("STOP"));
