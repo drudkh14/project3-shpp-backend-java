@@ -7,15 +7,15 @@ import jakarta.jms.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.sql.SQLOutput;
 import java.time.Instant;
-import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
-public class MessagePOJOProducer implements Runnable {
+public class MessagePOJOProducer implements Callable<Integer> {
 
-    private final ObjectMapper mapper = new ObjectMapper().registerModule(new JavaTimeModule());
-    private final Logger logger = LoggerFactory.getLogger(MessagePOJOProducer.class);
+    private static final ObjectMapper MAPPER = new ObjectMapper().registerModule(new JavaTimeModule());
+    private static final Logger LOGGER = LoggerFactory.getLogger(MessagePOJOProducer.class);
     private final Connection connection;
     private final String queue;
     private final int count;
@@ -29,42 +29,44 @@ public class MessagePOJOProducer implements Runnable {
     }
 
     @Override
-    public void run() {
+    public Integer call() {
         Instant now = Instant.now();
         Instant stopTime = now.plusSeconds(stop);
+        AtomicInteger messageCount = new AtomicInteger();
 
         try (
                 Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
-                MessageProducer producer = session.createProducer(session.createQueue(queue));
+                MessageProducer producer = session.createProducer(session.createQueue(queue))
         ) {
             producer.setDeliveryMode(DeliveryMode.NON_PERSISTENT);
+            producer.setDisableMessageID(true);
+            producer.setDisableMessageTimestamp(true);
+
+            TextMessage textMessage = session.createTextMessage();
 
             Stream.generate(MessageGenerator::generateMessage)
                     .limit(count)
                     .takeWhile(msg -> Instant.now().isBefore(stopTime))
                     .forEach(msg -> {
-                        String json;
                         try {
-                            json = mapper.writeValueAsString(msg);
-                        } catch (JsonProcessingException e) {
-                            throw new RuntimeException(e);
-                        }
-                        System.out.println(json);
-                        TextMessage textMessage;
-                        try {
-                            textMessage = session.createTextMessage(json);
-                        } catch (JMSException e) {
-                            throw new RuntimeException(e);
-                        }
-                        try {
+                            textMessage.setText(MAPPER.writeValueAsString(msg));
+                            LOGGER.debug("Sending message {}", msg);
                             producer.send(textMessage);
+                            LOGGER.debug("Sent message {}", msg);
+
+                            messageCount.getAndIncrement();
                         } catch (JMSException e) {
-                            throw new RuntimeException(e);
+                            LOGGER.error("Failed to send message.", e);
+                        } catch (JsonProcessingException e) {
+                            LOGGER.error("Failed to serialize message.", e);
                         }
                     });
+            LOGGER.info("Sending poison pill.");
             producer.send(session.createTextMessage("STOP"));
+            LOGGER.info("Poison pill sent.");
         } catch (JMSException e) {
-            logger.error("Failed to start producer.", e);
+            LOGGER.error("Failed to start producer.", e);
         }
+        return messageCount.get();
     }
 }
