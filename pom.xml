@@ -74,13 +74,6 @@
     </dependency>
 
     <dependency>
-      <groupId>com.github.javafaker</groupId>
-      <artifactId>javafaker</artifactId>
-      <version>1.0.2</version>
-      <scope>compile</scope>
-    </dependency>
-
-    <dependency>
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-csv</artifactId>
       <version>1.14.1</version>
