@@ -21,7 +21,7 @@ public class MessageGenerator {
                 LocalDateTime.of(1900, 1, 1, 0, 0), now).toLocalDate();
         msg.setEddr(generateRandomEddr(birthDate));
         msg.setCount(generateRandomCount());
-        msg.setCreated_at(generateRandomDateTime(birthDate.atStartOfDay(), now));
+        msg.setCreatedAt(generateRandomDateTime(birthDate.atStartOfDay(), now));
         return msg;
     }
 
