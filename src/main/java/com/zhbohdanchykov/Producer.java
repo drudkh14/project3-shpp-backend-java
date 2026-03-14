@@ -43,7 +43,6 @@ public class Producer implements Callable<Integer> {
             producer.setDisableMessageTimestamp(true);
 
             TextMessage textMessage = session.createTextMessage();
-
             Stream.generate(MessageGenerator::generateMessage)
                     .limit(count)
                     .takeWhile(msg -> Instant.now().isBefore(stopTime))

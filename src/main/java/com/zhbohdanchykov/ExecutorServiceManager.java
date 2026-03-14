@@ -32,7 +32,8 @@ public class ExecutorServiceManager {
         launchPool(writers, writerPool, writerResults);
     }
 
-    private void launchPool(ArrayList<? extends Callable> tasks, ExecutorService pool, List<Future<Integer>> results) {
+    private void launchPool(ArrayList<? extends Callable<Integer>> tasks, ExecutorService pool,
+                            List<Future<Integer>> results) {
         tasks.forEach(task -> results.add(pool.submit(task)));
     }
 

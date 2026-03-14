@@ -4,35 +4,26 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import jakarta.jms.*;
-import jakarta.validation.ConstraintViolation;
-import jakarta.validation.Validation;
-import jakarta.validation.Validator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Set;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
-
 
 public class Consumer implements Callable<Integer> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Consumer.class);
-    private static final Validator VALIDATOR = Validation.buildDefaultValidatorFactory().getValidator();
     private static final ObjectMapper MAPPER = new ObjectMapper().registerModule(new JavaTimeModule());
 
     private final Connection connection;
     private final String queue;
-    private final BlockingQueue<MessagePOJO> validQueue;
-    private final BlockingQueue<MessagePOJO> invalidQueue;
+    private final MessageRouter router;
 
     public Consumer(Connection connection, String queue,
-                    BlockingQueue<MessagePOJO> validQueue, BlockingQueue<MessagePOJO> invalidQueue) {
+                    MessageRouter router) {
         this.connection = connection;
         this.queue = queue;
-        this.validQueue = validQueue;
-        this.invalidQueue = invalidQueue;
+        this.router = router;
     }
 
     @Override
@@ -45,26 +36,18 @@ public class Consumer implements Callable<Integer> {
             boolean reading = true;
 
             while (reading) {
-                Message message = consumer.receive();
-                TextMessage textMessage = (TextMessage) message;
+                TextMessage textMessage = (TextMessage) consumer.receive();
                 String text = textMessage.getText();
                 LOGGER.debug("Message received: {}", text);
                 if (!text.equals("STOP")) {
                     MessagePOJO messagePOJO = MAPPER.readValue(text, MessagePOJO.class);
-                    Set<ConstraintViolation<MessagePOJO>> violations = VALIDATOR.validate(messagePOJO);
-                    if (violations.isEmpty()) {
-                        validQueue.put(messagePOJO);
-                    } else {
-                        messagePOJO.setErrors(violations.stream().map(ConstraintViolation::getMessage).toList());
-                        invalidQueue.put(messagePOJO);
-                    }
+                    router.routeMessage(messagePOJO);
                     messageCount.incrementAndGet();
                 } else {
                     LOGGER.info("Received poison pill");
                     reading = false;
                     LOGGER.info("Messages from a consumer received: {}", messageCount);
-                    validQueue.put(MessagePOJO.poison());
-                    invalidQueue.put(MessagePOJO.poison());
+                    router.routeMessage(MessagePOJO.poison());
                 }
             }
         } catch (JMSException e) {

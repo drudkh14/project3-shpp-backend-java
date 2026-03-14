@@ -86,8 +86,10 @@ public class Application {
     private ArrayList<Consumer> prepareConsumers(Connection connection) {
         ArrayList<Consumer> res = new ArrayList<>();
 
+        MessageRouter router = new MessageRouter(VALID_QUEUE, INVALID_QUEUE);
+
         for (int i = 0; i < THREADS_NUMBER; i++) {
-            res.add(new Consumer(connection, properties.getQueueName(), VALID_QUEUE, INVALID_QUEUE));
+            res.add(new Consumer(connection, properties.getQueueName(), router));
         }
 
         return res;
