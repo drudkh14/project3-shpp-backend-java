@@ -13,9 +13,12 @@ public class ProjectProperties {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ProjectProperties.class);
 
+    private static final String DEFAULT_MESSAGES_COUNT = "1000000";
+
     private final String url;
     private final String queueName;
     private final int stopTime;
+    private final int messagesNumber;
 
     public ProjectProperties(String filename) throws IOException, NumberFormatException {
         LOGGER.info("Created ProjectProperties. Got file {} for properties. Passing to PropertiesLoader", filename);
@@ -23,6 +26,7 @@ public class ProjectProperties {
         this.url = properties.getProperty("url");
         this.queueName = properties.getProperty("queue");
         this.stopTime = Integer.parseInt(properties.getProperty("stop"));
+        this.messagesNumber = Integer.parseInt(System.getProperty("count", DEFAULT_MESSAGES_COUNT));
     }
 
     @NotNull(message = "URL must not be null.")
@@ -40,5 +44,10 @@ public class ProjectProperties {
     @Min(value = 0, message = "Stop time must be positive.")
     public int getStopTime() {
         return stopTime;
+    }
+
+    @Min(value = 0, message = "Number of messages to send must be positive.")
+    public int getMessagesNumber() {
+        return messagesNumber;
     }
 }

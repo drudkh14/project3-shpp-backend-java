@@ -12,16 +12,16 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
-public class MessagePOJOProducer implements Callable<Integer> {
+public class Producer implements Callable<Integer> {
 
     private static final ObjectMapper MAPPER = new ObjectMapper().registerModule(new JavaTimeModule());
-    private static final Logger LOGGER = LoggerFactory.getLogger(MessagePOJOProducer.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(Producer.class);
     private final Connection connection;
     private final String queue;
     private final int count;
     private final int stop;
 
-    public MessagePOJOProducer(Connection connection, String queue, int count, int stop) {
+    public Producer(Connection connection, String queue, int count, int stop) {
         this.connection = connection;
         this.queue = queue;
         this.count = count;

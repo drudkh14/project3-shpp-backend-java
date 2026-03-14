@@ -14,22 +14,22 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class MessageWriterCSV implements Callable<Integer> {
+public class WriterCSV implements Callable<Integer> {
 
     private static final ObjectMapper MAPPER = new ObjectMapper().registerModule(new JavaTimeModule());
-    private static final Logger LOGGER = LoggerFactory.getLogger(MessageWriterCSV.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(WriterCSV.class);
 
     private final BlockingQueue<MessagePOJO> queue;
     private final String filename;
     private final String[] header;
-    private final int posionPillCount;
+    private final int poisonPillCount;
 
-    public MessageWriterCSV(BlockingQueue<MessagePOJO> queue, String filename, String[] header,
-                            int poisonPillCount) {
+    public WriterCSV(BlockingQueue<MessagePOJO> queue, String filename, String[] header,
+                     int poisonPillCount) {
         this.queue = queue;
         this.filename = filename;
         this.header = header;
-        this.posionPillCount = poisonPillCount;
+        this.poisonPillCount = poisonPillCount;
     }
 
     @Override
@@ -43,6 +43,7 @@ public class MessageWriterCSV implements Callable<Integer> {
             while (writing) {
                 MessagePOJO message = queue.take();
                 LOGGER.debug("Writing message: {}", message);
+
                 if (!message.getIsPoisonPill()) {
                     if (message.getErrors() == null) {
                         printer.printRecord(message.getName(), message.getCount());
@@ -57,7 +58,7 @@ public class MessageWriterCSV implements Callable<Integer> {
                     messageCount.incrementAndGet();
                 } else {
                     posionPillReceived++;
-                    if (posionPillReceived == posionPillCount) {
+                    if (posionPillReceived == poisonPillCount) {
                         writing = false;
                     }
                 }

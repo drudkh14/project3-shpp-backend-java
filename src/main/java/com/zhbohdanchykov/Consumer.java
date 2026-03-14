@@ -16,9 +16,9 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
 
 
-public class MessagePOJOConsumer implements Callable<Integer> {
+public class Consumer implements Callable<Integer> {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(MessagePOJOConsumer.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(Consumer.class);
     private static final Validator VALIDATOR = Validation.buildDefaultValidatorFactory().getValidator();
     private static final ObjectMapper MAPPER = new ObjectMapper().registerModule(new JavaTimeModule());
 
@@ -27,8 +27,8 @@ public class MessagePOJOConsumer implements Callable<Integer> {
     private final BlockingQueue<MessagePOJO> validQueue;
     private final BlockingQueue<MessagePOJO> invalidQueue;
 
-    public MessagePOJOConsumer(Connection connection, String queue,
-                               BlockingQueue<MessagePOJO> validQueue, BlockingQueue<MessagePOJO> invalidQueue) {
+    public Consumer(Connection connection, String queue,
+                    BlockingQueue<MessagePOJO> validQueue, BlockingQueue<MessagePOJO> invalidQueue) {
         this.connection = connection;
         this.queue = queue;
         this.validQueue = validQueue;
@@ -62,7 +62,7 @@ public class MessagePOJOConsumer implements Callable<Integer> {
                 } else {
                     LOGGER.info("Received poison pill");
                     reading = false;
-                    LOGGER.info("Total messages received: {}", messageCount);
+                    LOGGER.info("Messages from a consumer received: {}", messageCount);
                     validQueue.put(MessagePOJO.poison());
                     invalidQueue.put(MessagePOJO.poison());
                 }
