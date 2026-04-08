@@ -10,6 +10,9 @@ public class ContainsLetterValidator implements ConstraintValidator<ContainsLett
     @Override
     public void initialize(ContainsLetter constraintAnnotation) {
         value = constraintAnnotation.value();
+        if (!Character.isLetter(value)) {
+            throw new IllegalArgumentException("Value must be a letter");
+        }
     }
 
     @Override
@@ -17,6 +20,7 @@ public class ContainsLetterValidator implements ConstraintValidator<ContainsLett
         if (object == null) {
             return true;
         }
-        return object.toLowerCase().contains(String.valueOf(value)) && Character.isLetter(value);
+        return object.toLowerCase().
+                contains(String.valueOf(value).toLowerCase());
     }
 }
