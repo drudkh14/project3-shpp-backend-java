@@ -1,12 +1,13 @@
 package com.zhbohdanchykov;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
-import java.time.LocalDateTime;
+import java.time.LocalDateTime;import java.util.List;
 
 
 public class MessagePOJO {
@@ -16,15 +17,20 @@ public class MessagePOJO {
     private int count;
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    private LocalDateTime created_at;
+    @JsonProperty("created_at")
+    private LocalDateTime createdAt;
+
+    private List<String> errors = null;
+
+    private boolean isPoisonPill = false;
     
     public MessagePOJO() {}
 
-    public MessagePOJO(String name, String eddr, int count, LocalDateTime created_at) {
+    public MessagePOJO(String name, String eddr, int count, LocalDateTime createdAt) {
         this.name = name;
         this.eddr = eddr;
         this.count = count;
-        this.created_at = created_at;
+        this.createdAt = createdAt;
     }
 
     @NotNull(message = "Name must not be null.")
@@ -61,12 +67,20 @@ public class MessagePOJO {
     }
 
     @NotNull(message = "CreatedAt must not be null.")
-    public LocalDateTime getCreated_at() {
-        return created_at;
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
     }
 
-    public void setCreated_at(LocalDateTime created_at) {
-        this.created_at = created_at;
+    public void setCreatedAt(LocalDateTime date) {
+        this.createdAt = date;
+    }
+
+    public List<String> getErrors() {
+        return errors;
+    }
+
+    public void setErrors(List<String> errors) {
+        this.errors = errors;
     }
 
     @Override
@@ -75,7 +89,21 @@ public class MessagePOJO {
                 "name='" + name + '\'' +
                 ", eddr='" + eddr + '\'' +
                 ", count=" + count +
-                ", created_at=" + created_at +
+                ", created_at=" + createdAt +
                 '}';
+    }
+
+    public boolean getIsPoisonPill() {
+        return isPoisonPill;
+    }
+
+    public void setIsPoisonPill(boolean poisonPill) {
+        isPoisonPill = poisonPill;
+    }
+
+    public static MessagePOJO poison() {
+        MessagePOJO messagePOJO = new MessagePOJO();
+        messagePOJO.setIsPoisonPill(true);
+        return messagePOJO;
     }
 }
