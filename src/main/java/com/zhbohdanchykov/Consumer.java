@@ -39,15 +39,16 @@ public class Consumer implements Callable<Integer> {
                 TextMessage textMessage = (TextMessage) consumer.receive();
                 String text = textMessage.getText();
                 LOGGER.debug("Message received: {}", text);
-                if (!text.equals("STOP")) {
-                    MessagePOJO messagePOJO = MAPPER.readValue(text, MessagePOJO.class);
+                MessagePOJO messagePOJO = MAPPER.readValue(text, MessagePOJO.class);
+                LOGGER.debug("Message serialized into MessagePOJO {}", messagePOJO);
+                if (!messagePOJO.getIsPoisonPill()) {
                     router.routeMessage(messagePOJO);
                     messageCount.incrementAndGet();
                 } else {
                     LOGGER.info("Received poison pill");
                     reading = false;
                     LOGGER.info("Messages from a consumer received: {}", messageCount);
-                    router.routeMessage(MessagePOJO.poison());
+                    router.routeMessage(messagePOJO);
                 }
             }
         } catch (JMSException e) {

@@ -57,14 +57,16 @@ public class Producer implements Callable<Integer> {
                         } catch (JMSException e) {
                             LOGGER.error("Failed to send message.", e);
                         } catch (JsonProcessingException e) {
-                            LOGGER.error("Failed to serialize message.", e);
+                            LOGGER.error("Failed to serialize message: {}.", msg, e);
                         }
                     });
             LOGGER.info("Sending poison pill.");
-            producer.send(session.createTextMessage("STOP"));
+            producer.send(session.createTextMessage(MAPPER.writeValueAsString(MessagePOJO.poison())));
             LOGGER.info("Poison pill sent.");
         } catch (JMSException e) {
             LOGGER.error("Failed to start producer.", e);
+        } catch (JsonProcessingException e) {
+            LOGGER.error("Failed to serialize message: {}", MessagePOJO.poison(), e);
         }
         return messageCount.get();
     }
