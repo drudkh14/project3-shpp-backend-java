@@ -1,7 +1,6 @@
 package com.zhbohdanchykov;
 
 import jakarta.validation.ConstraintViolation;
-import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 
 import java.util.Set;
@@ -9,14 +8,16 @@ import java.util.concurrent.BlockingQueue;
 
 public class MessageRouter {
 
-    private static final Validator VALIDATOR = Validation.buildDefaultValidatorFactory().getValidator();
+    private final Validator validator;
 
     private final BlockingQueue<MessagePOJO> validQueue;
     private final BlockingQueue<MessagePOJO> invalidQueue;
 
-    public MessageRouter(BlockingQueue<MessagePOJO> validQueue, BlockingQueue<MessagePOJO> invalidQueue) {
+    public MessageRouter(BlockingQueue<MessagePOJO> validQueue, BlockingQueue<MessagePOJO> invalidQueue,
+                         Validator validator) {
         this.validQueue = validQueue;
         this.invalidQueue = invalidQueue;
+        this.validator = validator;
     }
 
     public void routeMessage(MessagePOJO message) throws InterruptedException {
@@ -24,7 +25,7 @@ public class MessageRouter {
             validQueue.put(message);
             invalidQueue.put(message);
         } else {
-            Set<ConstraintViolation<MessagePOJO>> violations = VALIDATOR.validate(message);
+            Set<ConstraintViolation<MessagePOJO>> violations = validator.validate(message);
             if (violations.isEmpty()) {
                 validQueue.put(message);
             } else {

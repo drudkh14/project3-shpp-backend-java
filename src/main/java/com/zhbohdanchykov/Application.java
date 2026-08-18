@@ -2,6 +2,8 @@ package com.zhbohdanchykov;
 
 import jakarta.jms.Connection;
 import jakarta.jms.JMSException;
+import jakarta.validation.Validation;
+import jakarta.validation.ValidatorFactory;
 import org.apache.activemq.ActiveMQConnectionFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,17 +36,20 @@ public class Application {
     }
 
     public void start() {
-        ActiveMQConnectionFactory factory = new ActiveMQConnectionFactory(properties.getUrl());
-        factory.setTrustedPackages(List.of("com.zhbohdanchykov.MessagePOJO"));
+        ActiveMQConnectionFactory activeMQConnectionFactory = new ActiveMQConnectionFactory(properties.getUrl());
+        activeMQConnectionFactory.setTrustedPackages(List.of("com.zhbohdanchykov.MessagePOJO"));
 
         try (
-                Connection connection = factory.createConnection()) {
+                Connection connection = activeMQConnectionFactory.createConnection();
+                ValidatorFactory validatorFactory = Validation.buildDefaultValidatorFactory()
+        ) {
             connection.start();
 
             ExecutorServiceManager manager = new ExecutorServiceManager(THREADS_NUMBER);
 
             ArrayList<Producer> producers = prepareProducers(connection, MessageGenerator::generate);
-            ArrayList<Consumer> consumers = prepareConsumers(connection, new MessageRouter(VALID_QUEUE, INVALID_QUEUE));
+            ArrayList<Consumer> consumers = prepareConsumers(connection, new MessageRouter(VALID_QUEUE, INVALID_QUEUE,
+                    validatorFactory.getValidator()));
             ArrayList<WriterCSV> writers = prepareWriters();
 
             long startTime = System.currentTimeMillis();
