@@ -12,13 +12,13 @@
         </filter>
 
         <encoder>
-            <pattern>%d{yyyy-MM-dd HH:mm:ss} [%level] %msg%n</pattern>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss} [%level] [%thread] %class %msg%n</pattern>
         </encoder>
     </appender>
 
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
-            <pattern>%d{yyyy-MM-dd HH:mm:ss} [%level] %msg%n</pattern>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss} [%level] [%thread] %class %msg%n</pattern>
         </encoder>
 
         <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
@@ -28,15 +28,19 @@
 
     <appender name="OUTPUT" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
-            <pattern>%msg%n</pattern>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss} [%level] [%thread] %class %msg%n</pattern>
         </encoder>
+
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>INFO</level>
+        </filter>
     </appender>
 
     <logger name="PrinterLogger" level="INFO" additivity="false">
         <appender-ref ref="OUTPUT"/>
     </logger>
 
-    <root level="TRACE">
+    <root level="INFO">
         <appender-ref ref="CONSOLE"/>
         <appender-ref ref="FILE"/>
     </root>

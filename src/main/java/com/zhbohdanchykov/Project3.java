@@ -1,46 +1,37 @@
 package com.zhbohdanchykov;
 
-import jakarta.jms.ConnectionFactory;
-import org.apache.activemq.ActiveMQConnectionFactory;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.Validation;
+import jakarta.validation.Validator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Properties;
+import java.io.IOException;
+import java.util.Set;
 
 public class Project3 {
-    public static final int THREADS_NUMBER = 10;
-    private static final Logger logger = LoggerFactory.getLogger(Project3.class);
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(Project3.class);
+    private static final Validator VALIDATOR = Validation.buildDefaultValidatorFactory().getValidator();
 
     private static final String PROPERTIES_FILENAME = "project3.properties";
-    public static final String DEFAULT_MESSAGE_COUNT = "1000";
 
     public static void main(String[] args) {
-        Properties properties;
+        ProjectProperties properties;
         try {
-            properties = new PropertiesLoader(PROPERTIES_FILENAME).loadProperties();
-        } catch (Exception e) {
-            logger.error(String.valueOf(e));
+            properties = new ProjectProperties(PROPERTIES_FILENAME);
+        } catch (IOException | NumberFormatException e) {
+            LOGGER.error(e.getMessage(), e);
             return;
         }
 
-        ConnectionFactory connectionFactory = new ActiveMQConnectionFactory(properties.getProperty("url"));
-
-        String count = System.getProperty("count", DEFAULT_MESSAGE_COUNT);
-
-        MessagePOJOProducer producer = new MessagePOJOProducer(connectionFactory, properties.getProperty("queue"),
-                Integer.parseInt(count) / THREADS_NUMBER,
-                Integer.parseInt(properties.getProperty("stop")));
-
-        for (int i = 0; i < THREADS_NUMBER; i++) {
-            Thread thread = new Thread(producer);
-            thread.start();
+        Set<ConstraintViolation<ProjectProperties>> violations = VALIDATOR.validate(properties);
+        if (!violations.isEmpty()) {
+            LOGGER.error("Properties validation failed. Validation errors: {}",
+                    violations.stream().map(ConstraintViolation::getMessage).toList());
+            return;
         }
 
-        MessagePOJOConsumer consumer = new MessagePOJOConsumer(connectionFactory, properties.getProperty("queue"));
-
-        for (int i = 0; i < THREADS_NUMBER; i++) {
-            Thread thread = new Thread(consumer);
-            thread.start();
-        }
+        new Application(properties).start();
     }
 }

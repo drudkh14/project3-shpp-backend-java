@@ -8,7 +8,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.util.InvalidPropertiesFormatException;
 import java.util.Properties;
 
 /**
@@ -54,26 +53,6 @@ public class PropertiesLoader {
 
         logger.info("Loaded properties {} from {}", properties, fileName);
 
-        try {
-            allPropertiesAvailable(properties);
-        } catch (InvalidPropertiesFormatException e) {
-            throw new InvalidPropertiesFormatException(e.getMessage());
-        }
-
         return properties;
-    }
-
-    private void allPropertiesAvailable(Properties properties) throws InvalidPropertiesFormatException {
-        if (properties.getProperty("url") == null || properties.getProperty("url").isEmpty()) {
-            throw new InvalidPropertiesFormatException("Broker's url is missing.");
-        }
-
-        if (properties.getProperty("queue") == null || properties.getProperty("queue").isEmpty()) {
-            throw new InvalidPropertiesFormatException("Queue is missing.");
-        }
-
-        if (properties.getProperty("stop") == null || properties.getProperty("stop").isEmpty()) {
-            throw new InvalidPropertiesFormatException("Stop is missing.");
-        }
     }
 }

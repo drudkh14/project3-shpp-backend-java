@@ -1,7 +1,5 @@
 package com.zhbohdanchykov;
 
-import com.github.javafaker.Faker;
-
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
@@ -10,44 +8,54 @@ import java.util.concurrent.ThreadLocalRandom;
 
 public class MessageGenerator {
 
-    private static MessagePOJO msg = new MessagePOJO();
+    private static final char[] LETTERS = "abcdefghijklmnopqrstuvwxyz".toCharArray();
+    private static final DateTimeFormatter EDDR_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd");
 
-    public static MessagePOJO generateMessage() {
+    private MessageGenerator() {}
+
+    public static MessagePOJO generate() {
+        MessagePOJO msg = new MessagePOJO();
         msg.setName(generateRandomName());
-        LocalDate birthDate = generateRandomDate();
+        LocalDateTime now = LocalDateTime.now();
+        LocalDate birthDate = generateRandomDateTime(
+                LocalDateTime.of(1900, 1, 1, 0, 0), now).toLocalDate();
         msg.setEddr(generateRandomEddr(birthDate));
         msg.setCount(generateRandomCount());
-        msg.setCreated_at(generateRandomCreated_at(birthDate));
+        msg.setCreatedAt(generateRandomDateTime(birthDate.atStartOfDay(), now));
         return msg;
     }
 
     public static String generateRandomName() {
-        Faker faker = new Faker();
-        return  faker.name().firstName();
+        ThreadLocalRandom random = ThreadLocalRandom.current();
+        int length = random.nextInt(2, 15);
+
+        char[] name = new char[length];
+
+        name[0] = Character.toUpperCase(LETTERS[random.nextInt(LETTERS.length)]);
+        for (int i = 1; i < length; i++) {
+            name[i] = LETTERS[random.nextInt(LETTERS.length)];
+        }
+
+        return new String(name);
     }
 
     public static String generateRandomEddr(LocalDate birthDate) {
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
-        String birthDateEddr = birthDate.format(formatter);
+        String birthDateEddr = birthDate.format(EDDR_FORMATTER);
         String entryNumberEddr = String.format("%04d", ThreadLocalRandom.current().nextInt(1, 10000));
-        String controlDigit = generateControlDigit(birthDateEddr + entryNumberEddr);
-        StringBuilder builder = new StringBuilder();
-        builder.append(birthDateEddr);
-        builder.append("-");
-        builder.append(entryNumberEddr);
+        String controlDigit;
         if (ThreadLocalRandom.current().nextBoolean()) {
-            builder.append(controlDigit);
+            controlDigit = generateControlDigit(birthDateEddr);
         } else {
-            builder.append(ThreadLocalRandom.current().nextInt(0, 10));
+            controlDigit = String.valueOf(ThreadLocalRandom.current().nextInt(0, 10));
         }
-        return builder.toString();
+        return birthDateEddr + "-" + entryNumberEddr + controlDigit;
     }
 
     private static String generateControlDigit(String eddr) {
         int sum = 0;
         int[] weights = {7, 3, 1};
         for (int i = 0; i < eddr.length(); i++) {
-            sum += Integer.parseInt(String.valueOf(eddr.charAt(i))) * weights[i % weights.length];
+            sum += (eddr.charAt(i) - '0') * weights[i % weights.length];
         }
         return String.valueOf(sum % 10);
     }
@@ -56,21 +64,10 @@ public class MessageGenerator {
         return ThreadLocalRandom.current().nextInt(0, 999);
     }
 
-    public static LocalDateTime generateRandomCreated_at(LocalDate birthDate) {
-        LocalDateTime start = birthDate.atStartOfDay();
-        LocalDateTime end = LocalDateTime.now();
+    public static LocalDateTime generateRandomDateTime(LocalDateTime start, LocalDateTime end) {
         long startSeconds = start.toEpochSecond(ZoneOffset.UTC);
         long endSeconds = end.toEpochSecond(ZoneOffset.UTC);
         long randomSeconds = ThreadLocalRandom.current().nextLong(startSeconds, endSeconds);
         return LocalDateTime.ofEpochSecond(randomSeconds, 0, ZoneOffset.UTC);
-    }
-
-    public static LocalDate generateRandomDate() {
-        LocalDate start = LocalDate.of(1900, 1, 1);
-        LocalDate end = LocalDate.now();
-        long startDays = start.toEpochDay();
-        long endDays = end.toEpochDay();
-        long randomDays = ThreadLocalRandom.current().nextLong(startDays, endDays);
-        return LocalDate.ofEpochDay(randomDays);
     }
 }
