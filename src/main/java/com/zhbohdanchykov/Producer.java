@@ -10,29 +10,33 @@ import org.slf4j.LoggerFactory;
 import java.time.Instant;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 public class Producer implements Callable<Integer> {
 
     private static final ObjectMapper MAPPER = new ObjectMapper().registerModule(new JavaTimeModule());
     private static final Logger LOGGER = LoggerFactory.getLogger(Producer.class);
+
     private final Connection connection;
     private final String queue;
     private final int count;
     private final int stop;
+    private final Supplier<MessagePOJO> messageGenerator;
 
-    public Producer(Connection connection, String queue, int count, int stop) {
+    public Producer(Connection connection, String queue, int count, int stop, Supplier<MessagePOJO> messageGenerator) {
         this.connection = connection;
         this.queue = queue;
         this.count = count;
         this.stop = stop;
+        this.messageGenerator = messageGenerator;
     }
 
     @Override
     public Integer call() {
+        AtomicInteger messageCount = new AtomicInteger();
         Instant now = Instant.now();
         Instant stopTime = now.plusSeconds(stop);
-        AtomicInteger messageCount = new AtomicInteger();
 
         try (
                 Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
@@ -43,7 +47,7 @@ public class Producer implements Callable<Integer> {
             producer.setDisableMessageTimestamp(true);
 
             TextMessage textMessage = session.createTextMessage();
-            Stream.generate(MessageGenerator::generateMessage)
+            Stream.generate(messageGenerator)
                     .limit(count)
                     .takeWhile(msg -> Instant.now().isBefore(stopTime))
                     .forEach(msg -> {
@@ -61,7 +65,8 @@ public class Producer implements Callable<Integer> {
                         }
                     });
             LOGGER.info("Sending poison pill.");
-            producer.send(session.createTextMessage(MAPPER.writeValueAsString(MessagePOJO.poison())));
+            textMessage.setText(MAPPER.writeValueAsString(MessagePOJO.poison()));
+            producer.send(textMessage);
             LOGGER.info("Poison pill sent.");
         } catch (JMSException e) {
             LOGGER.error("Failed to start producer.", e);

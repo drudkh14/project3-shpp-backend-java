@@ -13,7 +13,7 @@ public class MessageGenerator {
 
     private MessageGenerator() {}
 
-    public static MessagePOJO generateMessage() {
+    public static MessagePOJO generate() {
         MessagePOJO msg = new MessagePOJO();
         msg.setName(generateRandomName());
         LocalDateTime now = LocalDateTime.now();
@@ -46,7 +46,7 @@ public class MessageGenerator {
         if (ThreadLocalRandom.current().nextBoolean()) {
             controlDigit = generateControlDigit(birthDateEddr);
         } else {
-            controlDigit = String.valueOf(ThreadLocalRandom.current().nextInt(0, 1));
+            controlDigit = String.valueOf(ThreadLocalRandom.current().nextInt(0, 10));
         }
         return birthDateEddr + "-" + entryNumberEddr + controlDigit;
     }

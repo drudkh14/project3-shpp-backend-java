@@ -10,6 +10,7 @@ import java.util.concurrent.*;
 public class ExecutorServiceManager {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ExecutorServiceManager.class);
+
     public static final int TIMEOUT = 600;
 
     private final ExecutorService producerPool;

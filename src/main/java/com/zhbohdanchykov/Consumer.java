@@ -29,6 +29,7 @@ public class Consumer implements Callable<Integer> {
     @Override
     public Integer call() {
         AtomicInteger messageCount = new AtomicInteger(0);
+        MessagePOJO messagePOJO = null;
         try (
                 Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
                 MessageConsumer consumer = session.createConsumer(session.createQueue(queue))
@@ -39,7 +40,7 @@ public class Consumer implements Callable<Integer> {
                 TextMessage textMessage = (TextMessage) consumer.receive();
                 String text = textMessage.getText();
                 LOGGER.debug("Message received: {}", text);
-                MessagePOJO messagePOJO = MAPPER.readValue(text, MessagePOJO.class);
+                messagePOJO = MAPPER.readValue(text, MessagePOJO.class);
                 LOGGER.debug("Message serialized into MessagePOJO {}", messagePOJO);
                 if (!messagePOJO.getIsPoisonPill()) {
                     router.routeMessage(messagePOJO);
@@ -56,7 +57,7 @@ public class Consumer implements Callable<Integer> {
         } catch (JsonProcessingException e) {
             LOGGER.error("Failed to parse JSON message.", e);
         } catch (InterruptedException e) {
-            LOGGER.error("Failed to put a message in a BlockingQueue.", e);
+            LOGGER.error("Failed to put a message {} in a BlockingQueue.", messagePOJO, e);
             Thread.currentThread().interrupt();
         }
 

@@ -10,10 +10,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.function.Supplier;
 
 public class Application {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Application.class);
+    private static final Logger PRINTER = LoggerFactory.getLogger("PrinterLogger");
 
     private static final int THREADS_NUMBER = 10;
 
@@ -41,8 +43,8 @@ public class Application {
 
             ExecutorServiceManager manager = new ExecutorServiceManager(THREADS_NUMBER);
 
-            ArrayList<Producer> producers = prepareProducers(connection);
-            ArrayList<Consumer> consumers = prepareConsumers(connection);
+            ArrayList<Producer> producers = prepareProducers(connection, MessageGenerator::generate);
+            ArrayList<Consumer> consumers = prepareConsumers(connection, new MessageRouter(VALID_QUEUE, INVALID_QUEUE));
             ArrayList<WriterCSV> writers = prepareWriters();
 
             long startTime = System.currentTimeMillis();
@@ -54,16 +56,21 @@ public class Application {
             long endTime = System.currentTimeMillis();
             float elapsedTime = (float) (endTime - startTime) / 1000;
             LOGGER.info("Time: {} s", elapsedTime);
+            PRINTER.info("Time: {} s", elapsedTime);
             LOGGER.info("Total messages sent: {}", results.messagesSent());
+            PRINTER.info("Total messages sent: {}", results.messagesSent());
             LOGGER.info("Total messages received: {}", results.messagesReceived());
+            PRINTER.info("Total messages received: {}", results.messagesReceived());
             LOGGER.info("Total messages written: {}", results.messagesWritten());
+            PRINTER.info("Total messages written: {}", results.messagesWritten());
             LOGGER.info("Messages per second: {}", results.messagesWritten() / elapsedTime);
+            PRINTER.info("Messages per second: {}", results.messagesWritten() / elapsedTime);
         } catch (JMSException e) {
             LOGGER.error("Failed to create a JMS connection.");
         }
     }
 
-    private ArrayList<Producer> prepareProducers(Connection connection) {
+    private ArrayList<Producer> prepareProducers(Connection connection, Supplier<MessagePOJO> messageGenerator) {
         ArrayList<Producer> res = new ArrayList<>();
 
         int messagesNumber = properties.getMessagesNumber();
@@ -74,19 +81,18 @@ public class Application {
         for (int i = 0; i < THREADS_NUMBER; i++) {
             if (i == THREADS_NUMBER - 1) {
                 res.add(new Producer(connection, queueName, batch + rest,
-                        properties.getStopTime()));
+                        properties.getStopTime(), MessageGenerator::generate));
             } else {
-                res.add(new Producer(connection, queueName, batch, properties.getStopTime()));
+                res.add(new Producer(connection, queueName, batch, properties.getStopTime(),
+                        messageGenerator));
             }
         }
 
         return res;
     }
 
-    private ArrayList<Consumer> prepareConsumers(Connection connection) {
+    private ArrayList<Consumer> prepareConsumers(Connection connection, MessageRouter router) {
         ArrayList<Consumer> res = new ArrayList<>();
-
-        MessageRouter router = new MessageRouter(VALID_QUEUE, INVALID_QUEUE);
 
         for (int i = 0; i < THREADS_NUMBER; i++) {
             res.add(new Consumer(connection, properties.getQueueName(), router));
