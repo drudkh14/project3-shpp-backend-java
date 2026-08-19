@@ -19,6 +19,7 @@ public class Application {
 
     private static final int THREADS_NUMBER = 10;
     private static final int THREAD_NUMBERS_WRITERS = 2;
+    public static final int TIMEOUT = 600;
 
     private static final String VALID_FILENAME = "valid_messages.csv";
     private static final String INVALID_FILENAME = "invalid_messages.csv";
@@ -27,7 +28,6 @@ public class Application {
 
     private static final BlockingQueue<MessagePOJO> VALID_QUEUE = new LinkedBlockingQueue<>();
     private static final BlockingQueue<MessagePOJO> INVALID_QUEUE = new LinkedBlockingQueue<>();
-
 
     private final ProjectProperties properties;
     private final Validator validator;
@@ -51,7 +51,7 @@ public class Application {
                     new MessageRouter(VALID_QUEUE, INVALID_QUEUE, validator)
             );
 
-            ExecutorServiceManager<Integer> manager = new ExecutorServiceManager<>(entries);
+            ExecutorServiceManager<Integer> manager = new ExecutorServiceManager<>(entries, TIMEOUT);
 
             long startTime = System.currentTimeMillis();
 

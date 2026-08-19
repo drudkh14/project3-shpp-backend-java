@@ -10,21 +10,21 @@ public class ExecutorServiceManager<T> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ExecutorServiceManager.class);
 
-    public static final int TIMEOUT = 600;
-
     private final List<ExecutorServiceManagerEntry<T>> entries;
+    private final int timeout;
 
-    public ExecutorServiceManager(List<ExecutorServiceManagerEntry<T>> entries) {
+    public ExecutorServiceManager(List<ExecutorServiceManagerEntry<T>> entries, int timeout) {
         this.entries = entries;
+        this.timeout = timeout;
     }
 
     public void launch() {
         for (ExecutorServiceManagerEntry<T> entry : entries) {
-            launchPool(entry.tasks(), entry.executorService(), entry.results());
+            launchPool(entry.executorService(), entry.tasks(), entry.results());
         }
     }
 
-    private void launchPool(List<? extends Callable<T>> tasks, ExecutorService pool,
+    private void launchPool(ExecutorService pool, List<? extends Callable<T>> tasks,
                             List<Future<T>> results) {
         tasks.forEach(task -> results.add(pool.submit(task)));
     }
@@ -39,9 +39,9 @@ public class ExecutorServiceManager<T> {
         pool.shutdown();
 
         try {
-            if (!pool.awaitTermination(TIMEOUT, TimeUnit.SECONDS)) {
+            if (!pool.awaitTermination(timeout, TimeUnit.SECONDS)) {
                 pool.shutdownNow();
-                if (!pool.awaitTermination(TIMEOUT, TimeUnit.SECONDS)) {
+                if (!pool.awaitTermination(timeout, TimeUnit.SECONDS)) {
                     LOGGER.error("{} pool did not terminate.", pool);
                 }
             }
