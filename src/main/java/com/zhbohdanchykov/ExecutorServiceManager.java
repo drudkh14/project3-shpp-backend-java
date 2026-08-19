@@ -3,45 +3,36 @@ package com.zhbohdanchykov;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.*;
 
-public class ExecutorServiceManager {
+public class ExecutorServiceManager<T> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ExecutorServiceManager.class);
 
     public static final int TIMEOUT = 600;
 
-    private final ExecutorService producerPool;
-    private final ExecutorService consumerPool;
-    private final ExecutorService writerPool;
+    private final List<ExecutorServiceManagerEntry<T>> entries;
 
-    private final List<Future<Integer>> producerResults = new ArrayList<>();
-    private final List<Future<Integer>> consumerResults = new ArrayList<>();
-    private final List<Future<Integer>> writerResults = new ArrayList<>();
-
-    public ExecutorServiceManager(int threadsNumber) {
-        this.producerPool = Executors.newFixedThreadPool(threadsNumber);
-        this.consumerPool = Executors.newFixedThreadPool(threadsNumber);
-        this.writerPool = Executors.newFixedThreadPool(2);
+    public ExecutorServiceManager(List<ExecutorServiceManagerEntry<T>> entries) {
+        this.entries = entries;
     }
 
-    public void launch(ArrayList<Producer> producers, ArrayList<Consumer> consumers, ArrayList<WriterCSV> writers) {
-        launchPool(producers, producerPool, producerResults);
-        launchPool(consumers, consumerPool, consumerResults);
-        launchPool(writers, writerPool, writerResults);
+    public void launch() {
+        for (ExecutorServiceManagerEntry<T> entry : entries) {
+            launchPool(entry.tasks(), entry.executorService(), entry.results());
+        }
     }
 
-    private void launchPool(ArrayList<? extends Callable<Integer>> tasks, ExecutorService pool,
-                            List<Future<Integer>> results) {
+    private void launchPool(List<? extends Callable<T>> tasks, ExecutorService pool,
+                            List<Future<T>> results) {
         tasks.forEach(task -> results.add(pool.submit(task)));
     }
 
     public void terminate() {
-        shutdownGraceful(producerPool);
-        shutdownGraceful(consumerPool);
-        shutdownGraceful(writerPool);
+        for (ExecutorServiceManagerEntry<T> entry : entries) {
+            shutdownGraceful(entry.executorService());
+        }
     }
 
     private void shutdownGraceful(ExecutorService pool) {
@@ -59,30 +50,5 @@ public class ExecutorServiceManager {
             pool.shutdownNow();
             Thread.currentThread().interrupt();
         }
-    }
-
-    public ProcessingResults getResults() {
-        int totalMessagesSent = getResults(producerResults);
-        int totalMessagesReceived = getResults(consumerResults);
-        int totalMessagesWritten = getResults(writerResults);
-
-        return new ProcessingResults(totalMessagesSent, totalMessagesReceived, totalMessagesWritten);
-    }
-
-    private int getResults(List<Future<Integer>> results) {
-        int res = 0;
-
-        for (Future<Integer> future : results) {
-            try {
-                res += future.get();
-            } catch (InterruptedException e) {
-                LOGGER.error("Failed getting result from {} because of interruption.", results);
-                Thread.currentThread().interrupt();
-            } catch (ExecutionException e) {
-                LOGGER.error("Task from {} was failed.", results, e.getCause());
-            }
-        }
-
-        return res;
     }
 }
