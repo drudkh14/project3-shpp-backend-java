@@ -81,7 +81,7 @@ public class Application {
             LOGGER.info("Messages per second: {}", results.messagesWritten() / elapsedTime);
             PRINTER.info("Messages per second: {}", results.messagesWritten() / elapsedTime);
         } catch (JMSException e) {
-            LOGGER.error("Failed to create a JMS connection.");
+            LOGGER.error("Failed to create a JMS connection.", e);
         }
     }
 
