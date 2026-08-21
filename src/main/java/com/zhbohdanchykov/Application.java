@@ -7,6 +7,8 @@ import org.apache.activemq.ActiveMQConnectionFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.*;
@@ -31,20 +33,21 @@ public class Application {
 
     private final ProjectProperties properties;
     private final Validator validator;
+    private final ActiveMQConnectionFactory connectionFactory;
 
-    public Application(ProjectProperties properties, Validator validator) {
+    public Application(ProjectProperties properties, Validator validator, ActiveMQConnectionFactory connectionFactory) {
         this.properties = properties;
         this.validator = validator;
+        this.connectionFactory = connectionFactory;
+        LOGGER.info("Created Application got: {}, {}, {}", properties, validator, connectionFactory);
     }
 
     public void start() {
-        ActiveMQConnectionFactory activeMQConnectionFactory = new ActiveMQConnectionFactory(properties.getUrl());
-        activeMQConnectionFactory.setTrustedPackages(List.of("com.zhbohdanchykov.MessagePOJO"));
-
         try (
-                Connection connection = activeMQConnectionFactory.createConnection()
+                Connection connection = connectionFactory.createConnection()
         ) {
             connection.start();
+            LOGGER.trace("Started connection {}", connection);
 
             List<ExecutorServiceManagerEntry<Integer>> entries = prepareEntries(connection,
                     MessageGenerator::generate,
@@ -54,14 +57,19 @@ public class Application {
             ExecutorServiceManager<Integer> manager = new ExecutorServiceManager<>(entries, TIMEOUT);
 
             long startTime = System.currentTimeMillis();
+            LOGGER.info("Launching ExecutorServiceManager {} at {}", manager,
+                    LocalDateTime.ofEpochSecond(startTime, 0, ZoneOffset.UTC));
 
             manager.launch();
             manager.terminate();
 
-            ProcessingResults results = getResults(entries);
-
             long endTime = System.currentTimeMillis();
             float elapsedTime = (float) (endTime - startTime) / 1000;
+            LOGGER.info("Terminated ExecutorServiceManager {} at {}", manager,
+                    LocalDateTime.ofEpochSecond(endTime, 0, ZoneOffset.UTC));
+
+            ProcessingResults results = getResults(entries);
+
             LOGGER.info("Time: {} s", elapsedTime);
             PRINTER.info("Time: {} s", elapsedTime);
             LOGGER.info("Total messages sent: {}", results.messagesSent());
@@ -81,6 +89,8 @@ public class Application {
             Connection connection, Supplier<MessagePOJO> generator, MessageRouter router
     ) {
         List<ExecutorServiceManagerEntry<Integer>> res = new ArrayList<>();
+        LOGGER.trace("Creating entries list for ExecutorServiceManager, got: {}, {}, {}",
+                connection, generator, router);
 
         ExecutorServiceManagerEntry<Integer> producersEntry = new ExecutorServiceManagerEntry<>(
                 Executors.newFixedThreadPool(THREADS_NUMBER), prepareProducers(connection, generator), new ArrayList<>()
@@ -96,11 +106,14 @@ public class Application {
         res.add(consumersEntry);
         res.add(writersEntry);
 
+        LOGGER.trace("Created entries list for ExecutorServiceManager {}", res);
         return res;
     }
 
     private ArrayList<Producer> prepareProducers(Connection connection, Supplier<MessagePOJO> messageGenerator) {
         ArrayList<Producer> res = new ArrayList<>();
+        LOGGER.trace("Creating producers list for ExecutorServiceManagerEntry, got: {}, {}",
+                connection, messageGenerator);
 
         int messagesNumber = properties.getMessagesNumber();
         String queueName = properties.getQueueName();
@@ -117,32 +130,38 @@ public class Application {
             }
         }
 
+        LOGGER.trace("Created producers list {}", res);
         return res;
     }
 
     private ArrayList<Consumer> prepareConsumers(Connection connection, MessageRouter router) {
         ArrayList<Consumer> res = new ArrayList<>();
+        LOGGER.trace("Creating consumers list for ExecutorServiceManagerEntry, got: {}, {}",
+                connection, router);
 
         for (int i = 0; i < THREADS_NUMBER; i++) {
             res.add(new Consumer(connection, properties.getQueueName(), router));
         }
 
+        LOGGER.trace("Created consumers list {}", res);
         return res;
     }
 
     private ArrayList<WriterCSV> prepareWriters() {
         ArrayList<WriterCSV> res = new ArrayList<>();
+        LOGGER.trace("Creating writers list for ExecutorServiceManagerEntry");
 
         res.add(new WriterCSV(VALID_QUEUE, VALID_FILENAME, VALID_HEADER, THREADS_NUMBER));
         res.add(new WriterCSV(INVALID_QUEUE, INVALID_FILENAME, INVALID_HEADER, THREADS_NUMBER));
 
+        LOGGER.trace("Created writers list {}", res);
         return res;
     }
 
     private ProcessingResults getResults(List<ExecutorServiceManagerEntry<Integer>> entries) {
         int totalMessagesSent = countResult(entries.get(0).results());
         int totalMessagesReceived = countResult(entries.get(1).results());
-        int totalMessagesWritten = countResult(entries.get(1).results());
+        int totalMessagesWritten = countResult(entries.get(2).results());
 
         return new ProcessingResults(totalMessagesSent, totalMessagesReceived, totalMessagesWritten);
     }
@@ -163,5 +182,4 @@ public class Application {
 
         return res;
     }
-
 }

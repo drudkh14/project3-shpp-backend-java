@@ -4,10 +4,12 @@ import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import jakarta.validation.ValidatorFactory;
+import org.apache.activemq.ActiveMQConnectionFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Set;
 
 public class Project3 {
@@ -17,6 +19,7 @@ public class Project3 {
     private static final String PROPERTIES_FILENAME = "project3.properties";
 
     public static void main(String[] args) {
+        LOGGER.info("Starting Main");
         ProjectProperties properties;
         try {
             properties = new ProjectProperties(PROPERTIES_FILENAME);
@@ -36,6 +39,10 @@ public class Project3 {
             return;
         }
 
-        new Application(properties, validator).start();
+        ActiveMQConnectionFactory connectionFactory = new ActiveMQConnectionFactory(properties.getUrl());
+        connectionFactory.setTrustedPackages(List.of("com.zhbohdanchykov.MessagePOJO"));
+
+        new Application(properties, validator, connectionFactory).start();
+        LOGGER.info("Finished Main");
     }
 }

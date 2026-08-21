@@ -4,7 +4,8 @@ import jakarta.validation.ConstraintValidatorContext;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
+
+import static org.mockito.Mockito.mock;
 
 class CheckEddrValidatorTest {
 
@@ -14,8 +15,8 @@ class CheckEddrValidatorTest {
     @BeforeEach
     void setUp() {
         validator = new CheckEddrValidator();
-        CheckEddr annotation = Mockito.mock(CheckEddr.class);
-        context = Mockito.mock(ConstraintValidatorContext.class);
+        CheckEddr annotation = mock(CheckEddr.class);
+        context = mock(ConstraintValidatorContext.class);
         validator.initialize(annotation);
     }
 
